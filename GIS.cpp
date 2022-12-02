@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include "BufferPool.h"
+#include "HashTable.h"
 
 struct DMS {};
 
@@ -72,6 +74,7 @@ public:
     }
     static void import(std::string file,char* database) {
         std::cout << "filename to read " << file << "||| database now" << database << "\n";
+        int ignoreLine = 0;
         std::fstream input;
         std::fstream output;
         input.open(file, std::ios::in);
@@ -80,7 +83,10 @@ public:
            std::string tp;
            std::cout << "Both Files are open\n";
            while (getline(input,tp)) {
-               //std::cout << tp << "\n";
+               if (ignoreLine == 0) {
+                   ignoreLine++;
+                   continue;
+               }
                if (GISRecord::validate_record() == 1) {output << tp << "\n";}
 
            }
@@ -164,10 +170,17 @@ public:
 };
 
 int main(int argc, char *argv[]) {
+//    BufferPool pool;
+//    pool.addElement("5");
+//    pool.addElement("4");
+//    pool.addElement("3");
+//    pool.addElement("2");
+//    pool.addElement("1");
+//    pool.addElement("0");
+//    std::cout << pool.output();
     SystemManager::validate_args(argc,argv);
     CommandProcessor::process_cmd(argv[2], argv[1]);
     std::cout << "back in main";
-
-     return 0;
+    return 0;
 }
 
