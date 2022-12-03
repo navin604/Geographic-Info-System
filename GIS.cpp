@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -6,6 +5,8 @@
 #include <sstream>
 #include "BufferPool.h"
 #include "HashTable.h"
+#include <ctime>
+#include <chrono>
 
 struct DMS {};
 
@@ -43,11 +44,14 @@ public:
 
 class CommandProcessor {
 public:
-    static void process_cmd(char* filename, char* database,HashTable<std::string> &table) {
+    static void process_cmd(char* filename, char* database,char* logfile, HashTable<std::string> &table) {
+        std::fstream log;
+        log.open(logfile, std::ios_base::app);
+        std::cout << logfile << "\n";
         std::vector<std::string> vect;
         std::cout << filename << " process\n";
         std::fstream cmd_file;
-
+        int cnt = 1;
         std::cout << "Attempting to open: " << filename << "\n";
         cmd_file.open(filename, std::ios::in);
         if (cmd_file.is_open()) {
@@ -56,21 +60,24 @@ public:
             std::cout << "---------------------------------------------------------\n";
             while(getline(cmd_file,tp)) {
                 if (tp[0] == ';'){
+                    log << tp <<"\n";
                     continue;
                 }
 
                 std::cout << tp << "\n";
                 ex(tp, vect);
+
 //                for (std::string i: vect)
 //                    std::cout << i << ' ';
 //                std::cout<<"\n";
                 std::cout << "---------------------------------------------------------\n";
                 if (vect[0] == "import") {
-                    import(vect[1],database,table);
+                    log << "Command " <<cnt<<": import " << vect[1] << "\n";
+                    import(vect[1],database,table, log);
 
                 }
                 else if(vect[0] == "world") {
-                    world(vect);
+                    world(vect,log);
 
                 }
                 //else if() {
@@ -90,7 +97,7 @@ public:
             cmd_file.close();
         }
     }
-    static void import(std::string file,char* database,HashTable<std::string> &table) {
+    static void import(std::string file,char* database,HashTable<std::string> &table, std::fstream &log) {
         std::cout << "filename to read " << file << "||| database now" << database << "\n";
         int ignoreLine = 0;
         std::fstream input;
@@ -118,11 +125,12 @@ public:
         input.close();
         output.close();
         std::cout << "Finished Reading\n";
-        table.print();
+//        log <<"Command 1: import\t./VA_Monterey.txt\n";
+        log.close();
         exit(1);
 
     }
-    static void world(std::vector<std::string> &vec) {
+    static void world(std::vector<std::string> &vec, std::fstream &log) {
 
         int total = 0;
         std::string deg = vec[1].substr(0,3);
@@ -154,6 +162,14 @@ public:
         ::world.northLat = total;
 
 
+        log << "------------------------------------------------------------------------------------------\n";
+        log << " Latitude/longitude values in index entries are shown as signed integers, in total seconds.\n";
+        log << "------------------------------------------------------------------------------------------\n";
+        log << "                        World boundaries are set to:\n";
+        log << "                                    "<< ::world.northLat << "\n";
+        log << "                        "<<::world.westLong<< "                "<<::world.eastLong << "\n";
+        log << "                                    "<< ::world.southLat << "\n";
+        log << "------------------------------------------------------------------------------------------\n";
 
     }
 
@@ -174,13 +190,25 @@ public:
 class Logger {
 public:
     static void log_init(char* argv[]) {
+
+        auto time = std::chrono::system_clock::now();
+        std::time_t end_time = std::chrono::system_clock::to_time_t(time);
+
         std::fstream logfile;
         logfile.open(argv[3]);
-        logfile << "I am Navin Parmar\n";
-        logfile << "My student number is: A01044425\n";
-        logfile << "Input files are: <" << argv[1] << "> <"<< argv[2] << "> <"<<  argv[3] <<">\n";
+        logfile << "Course Project for COMP 8042\n";
+        logfile << "Student Name: Navin Parmar, Student Id: A01044425\n";
+        logfile << "Begin of GIS Program log:\n";
+        logfile << "    dbFile: " << argv[1] <<"\n";
+        logfile << "    script: " << argv[2] <<"\n";
+        logfile << "    log: " << argv[3] <<"\n";
+        logfile << "    Start Time:  " << std::ctime(&end_time) <<"\n";
+
         logfile.close();
     }
+
+
+
     static void add_cmd() {
 
     }
@@ -234,7 +262,7 @@ int main(int argc, char *argv[]) {
 
     HashTable<std::string> table;
     SystemManager::validate_args(argc,argv);
-    CommandProcessor::process_cmd(argv[2], argv[1],table);
+    CommandProcessor::process_cmd(argv[2], argv[1],argv[3],table);
     std::cout << "back in main";
     return 0;
 }
