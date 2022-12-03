@@ -9,10 +9,10 @@
 
 struct DMS {};
 
-struct {std::string westLong;
-        std::string eastLong;
-        std::string southLat;
-        std::string northLat;
+struct {int westLong;
+        int eastLong;
+        int southLat;
+        int northLat;
 }world;
 
 class GISRecord {
@@ -21,11 +21,29 @@ public:
         return 1;
 
     }
+    static void asses_record(std::string s,HashTable<std::string> &table,int i){
+        std::vector<std::string> l;
+        std::string temp = "";
+        for (auto x: s){
+            if (x=='|') {
+                l.push_back(temp);
+                temp = "";
+            }
+            else {
+                temp += x;
+
+            }
+        }
+        temp = l[1] +":"+ l[3];
+        //std::cout << temp <<" "<< i<< "\n";
+        table.insert(temp,i);
+
+    }
 };
 
 class CommandProcessor {
 public:
-    static void process_cmd(char* filename, char* database) {
+    static void process_cmd(char* filename, char* database,HashTable<std::string> &table) {
         std::vector<std::string> vect;
         std::cout << filename << " process\n";
         std::fstream cmd_file;
@@ -48,7 +66,7 @@ public:
 //                std::cout<<"\n";
                 std::cout << "---------------------------------------------------------\n";
                 if (vect[0] == "import") {
-                    import(vect[1],database);
+                    import(vect[1],database,table);
 
                 }
                 else if(vect[0] == "world") {
@@ -72,7 +90,7 @@ public:
             cmd_file.close();
         }
     }
-    static void import(std::string file,char* database) {
+    static void import(std::string file,char* database,HashTable<std::string> &table) {
         std::cout << "filename to read " << file << "||| database now" << database << "\n";
         int ignoreLine = 0;
         std::fstream input;
@@ -87,23 +105,56 @@ public:
                    ignoreLine++;
                    continue;
                }
-               if (GISRecord::validate_record() == 1) {output << tp << "\n";}
+               if (GISRecord::validate_record() == 1) {
+                   output << tp << "\n";
+                   GISRecord::asses_record(tp,table,ignoreLine);
+                   ignoreLine++;
+
+               }
 
            }
         } else std::cout << "Files did not open";
 
-
         input.close();
         output.close();
         std::cout << "Finished Reading\n";
+        table.print();
         exit(1);
 
     }
     static void world(std::vector<std::string> &vec) {
-        ::world.westLong = vec[1];
-        ::world.eastLong = vec[2];
-        ::world.southLat = vec[3];
-        ::world.northLat = vec[4];
+
+        int total = 0;
+        std::string deg = vec[1].substr(0,3);
+        std::string min = vec[1].substr(3,2);
+        std::string sec = vec[1].substr(5,2);
+        total = (stoi(deg)*3600) + (stoi(min)*60) +stoi(sec) ;
+        if (vec[1][7] == 'W') total = total*-1;
+        ::world.westLong = total;
+
+        deg = vec[2].substr(0,3);
+        min = vec[2].substr(3,2);
+        sec = vec[2].substr(5,2);
+        total = (stoi(deg)*3600) + (stoi(min)*60) +stoi(sec) ;
+        if (vec[2][7] == 'W') total = total*-1;
+        ::world.eastLong = total;
+
+        deg = vec[3].substr(0,2);
+        min = vec[3].substr(2,2);
+        sec = vec[3].substr(4,2);
+        total = (stoi(deg)*3600) + (stoi(min)*60) +stoi(sec) ;
+        if (vec[3][6] == 'S') total = total*-1;
+        ::world.southLat = total;
+
+        deg = vec[4].substr(0,2);
+        min = vec[4].substr(2,2);
+        sec = vec[4].substr(4,2);
+        total = (stoi(deg)*3600) + (stoi(min)*60) +stoi(sec) ;
+        if (vec[4][6] == 'S') total = total*-1;
+        ::world.northLat = total;
+
+
+
     }
 
 
@@ -170,6 +221,8 @@ public:
 };
 
 int main(int argc, char *argv[]) {
+//    HashTable<std::string> table;
+//    std::cout << table.elfhash("Little Doe Hill VA");
 //    BufferPool pool;
 //    pool.addElement("5");
 //    pool.addElement("4");
@@ -178,8 +231,10 @@ int main(int argc, char *argv[]) {
 //    pool.addElement("1");
 //    pool.addElement("0");
 //    std::cout << pool.output();
+
+    HashTable<std::string> table;
     SystemManager::validate_args(argc,argv);
-    CommandProcessor::process_cmd(argv[2], argv[1]);
+    CommandProcessor::process_cmd(argv[2], argv[1],table);
     std::cout << "back in main";
     return 0;
 }
