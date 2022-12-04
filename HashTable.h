@@ -16,33 +16,6 @@ public:
         currentSize = 0;
         makeEmpty();
     }
-    bool isPrime(int n) {
-        if (n == 2 || n == 3)
-            return true;
-
-        if (n == 1 || n % 2 == 0)
-            return false;
-
-        for (int i = 3; i * i <= n; i += 2)
-            if (n % i == 0)
-                return false;
-
-        return true;
-    }
-
-/**
- * Internal method to return a prime number at least as large as n.
- * Assumes n > 0.
- */
-    int nextPrime(int n) {
-        if (n % 2 == 0)
-            ++n;
-
-        for (; !isPrime(n); n += 2);
-
-        return n;
-    }
-
     void makeEmpty() {
         currentSize = 0;
         for (auto &entry: array)
@@ -73,43 +46,32 @@ public:
 
     }
 
-    bool insert(T s, int l) {
-
+    int insert(T s, int l) {
+        int probe;
         if (currentSize >= capacity() * MAX_LOAD) expand();
         //Calculate hash val
-
-        int key = elfhash(s) % capacity();
-        if (!isActive(key)){
-
-            array[key] = std::move(HashEntry{std::move(s),std::move(l),true});
-
-            currentSize++;
-
-
-            return true;
-        } else {
-
-
+        while (true) {
+            probe = 0;
+            int key = elfhash(s) % capacity();
+            for (int x=0; x<100;x++) {
+                if (!isActive(key)) {
+                    array[key] = std::move(HashEntry{std::move(s), std::move(l), true});
+                    currentSize++;
+                    return probe;
+                }
                 // If there is a collision
                 // iterating through all
                 // possible quadratic values
-                for (int j = 0; j < array.capacity(); j++) {
-                    // Computing the new hash value
-                    int key = ((pow(j,2)+j)/2);
+                probe++;
+                std::swap(s,array[key].key);
+                std::swap(l,array[key].value);
+                // Computing the new hash value
+                key = ((pow(key, 2) + key) / 2);
+                key = key % capacity();
 
-                    if (key>capacity()) key = key%capacity();
-                    if (!isActive(key)) {
-
-                        array[key] = std::move(HashEntry{std::move(s),std::move(l),true});
-                        currentSize++;
-
-
-                        return true;
-                    }
-                }
 
             }
-
+        }
     }
     int elfhash(std::string &s) {
         //Elfhash
