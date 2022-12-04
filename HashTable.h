@@ -47,7 +47,7 @@ public:
         os << std::endl;
         return os.str();
     }
-    int search(T s, int l) {
+    int search(T s) {
         int i = 0;
         int key = elfhash(s) % capacity();
         while (isActive(key))
@@ -64,7 +64,7 @@ public:
             // Computing the new hash value
             key = key % capacity();
         }
-        return {};
+        return -1;
 
     }
     int insert(T s, int l) {
