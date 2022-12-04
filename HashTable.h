@@ -47,8 +47,28 @@ public:
         os << std::endl;
         return os.str();
     }
+    int search(T s, int l) {
+        int i = 0;
+        int key = elfhash(s) % capacity();
+        while (isActive(key))
+        {
+            if (array[key].key == s)
+            {
+                return array[key].value;
+            }
+            i++;
 
+            //Use key in probe calc or else
+            //max prob does not match sample log
+            key = (key + ((i * i + i) / 2)) % capacity();
+            // Computing the new hash value
+            key = key % capacity();
+        }
+        return {};
+
+    }
     int insert(T s, int l) {
+        int i =0;
         int probe;
         if (currentSize >= capacity() * MAX_LOAD) expand();
         //Calculate hash val
@@ -65,10 +85,12 @@ public:
                 // iterating through all
                 // possible quadratic values
                 probe++;
-                std::swap(s,array[key].key);
-                std::swap(l,array[key].value);
+
+                i++;
+                //Use key in probe calc or else
+                //max prob does not match sample log
+                key = (key + (pow(i,i) + i) / 2);
                 // Computing the new hash value
-                key = ((pow(key, 2) + key) / 2);
                 key = key % capacity();
 
 
