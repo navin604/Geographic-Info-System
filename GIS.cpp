@@ -78,11 +78,17 @@ public:
                     debug(vect,log,table,pool);
                     cnt++;
                 }
-//
-//                } else if() {
-//
-//                } else if() {
-//
+                else if(vect[0] == "what_is") {
+                    log << "Command " <<cnt<<": what_is " << vect[1] << " " << vect[2] << "\n";
+                    what_is(vect,log,table,pool,database);
+                    cnt++;
+
+               } else if("quit") {
+                    log.close();
+                    exit(1);
+                }
+
+
 //                } else if() {
 //
 //                } else if() {
@@ -94,7 +100,25 @@ public:
             cmd_file.close();
         }
     }
-    static void debug(std::vector<std::string> &vec, std::fstream &log,HashTable<std::string> &table,BufferPool pool){
+    static void what_is(std::vector<std::string> &vec, std::fstream &log,HashTable<std::string> &table,BufferPool &pool,char* database){
+        std::string query = vec[1] +":"+ vec[2];
+        int result = table.search(query);
+        if (result == -1) {
+            log << "No records match \""<<vec[1] <<"\" and \""<< vec[2] << "\"\n";
+            return;
+        }
+        std::string offset = std::to_string(result);
+        query = pool.search(offset,database);
+        std::vector<std::string> temp = GISRecord::convert(query);
+        std::string lon = GISRecord::lon_str(temp[8]);
+        std::string lat = GISRecord::lat_str(temp[7]);
+        log << offset << ": " << temp[5] << " (" <<lat<<", "<<lon << ")\n";
+        log << "-------------------------------------------------------------------------------------------" << "\n";
+
+
+
+    }
+    static void debug(std::vector<std::string> &vec, std::fstream &log,HashTable<std::string> &table,BufferPool &pool){
 
         if (vec[1] == "hash"){
             log << table.print();
@@ -102,8 +126,7 @@ public:
         }else if(vec[1] == "pool"){
             log << pool.print();
             log << "-------------------------------------------------------------------------------------------" << "\n";
-            log.close();
-            exit(1);
+
         }
 
 
@@ -111,7 +134,7 @@ public:
     }
     static void import(std::string file,char* database,HashTable<std::string> &table, std::fstream &log,QuadTree* tree) {
         std::cout << "filename to read " << file << "||| database now" << database << "\n";
-        int ignoreLine = 0;
+        int ignoreLine = -1;
         std::fstream input;
         std::fstream output;
         input.open(file, std::ios::in);
@@ -127,7 +150,7 @@ public:
            std::string tp;
            std::cout << "Both Files are open\n";
            while (getline(input,tp)) {
-               if (ignoreLine == 0) {
+               if (ignoreLine == -1) {
                    ignoreLine++;
                    continue;
                }
@@ -207,12 +230,12 @@ public:
 
 
     static void ex(std::string s,std::vector<std::string> &vec) {
-        std::stringstream ss(s);
+        std::istringstream iss(s);
         std::string word;
-        while (ss >> word) {
-            vec.push_back(word);
+        while(std::getline(iss, word, '\t'))   // but we can specify a different one
+           vec.push_back(word);
+
         }
-    }
 };
 
 class Logger {
