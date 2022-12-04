@@ -5,6 +5,8 @@
 #include <sstream>
 #include "BufferPool.h"
 #include "HashTable.h"
+#include "GISRecord.h"
+#include "QuadTree.h"
 #include <ctime>
 #include <chrono>
 
@@ -15,36 +17,28 @@ struct {int westLong;
         int southLat;
         int northLat;
 }world;
+int avg = 0;
 
-class GISRecord {
-public:
-    static int validate_record() {
-        return 1;
-
-    }
-    static void asses_record(std::string s,HashTable<std::string> &table,int i){
-        std::vector<std::string> l;
-        std::string temp = "";
-        for (auto x: s){
-            if (x=='|') {
-                l.push_back(temp);
-                temp = "";
-            }
-            else {
-                temp += x;
-
-            }
-        }
-        temp = l[1] +":"+ l[3];
-        //std::cout << temp <<" "<< i<< "\n";
-        table.insert(temp,i);
-
-    }
-};
 
 class CommandProcessor {
+
 public:
-    static void process_cmd(char* filename, char* database,char* logfile, HashTable<std::string> &table) {
+    static int validate_record(std::string s){
+        std::vector<std::string> record = GISRecord::convert(s);
+        avg += record[1].size();
+        int lon = GISRecord::longitude_convert(record[8]);
+        int lat = GISRecord::latitude_convert(record[7]);
+
+        if ((lon > ::world.westLong) && (lon < ::world.eastLong) && (lat > ::world.southLat) && (lat < ::world.northLat)) {
+            return 1;
+        }
+        return 0;
+
+
+    }
+    static void process_cmd(char* filename, char* database,char* logfile) {
+        HashTable<std::string> table;
+        QuadTree *tree;
         std::fstream log;
         log.open(logfile, std::ios_base::app);
         std::cout << logfile << "\n";
@@ -66,18 +60,14 @@ public:
 
                 std::cout << tp << "\n";
                 ex(tp, vect);
-
-//                for (std::string i: vect)
-//                    std::cout << i << ' ';
-//                std::cout<<"\n";
                 std::cout << "---------------------------------------------------------\n";
                 if (vect[0] == "import") {
                     log << "Command " <<cnt<<": import " << vect[1] << "\n";
-                    import(vect[1],database,table, log);
+                    import(vect[1],database,table, log,tree);
 
                 }
                 else if(vect[0] == "world") {
-                    world(vect,log);
+                    world(vect,log,tree);
 
                 }
                 //else if() {
@@ -97,13 +87,20 @@ public:
             cmd_file.close();
         }
     }
-    static void import(std::string file,char* database,HashTable<std::string> &table, std::fstream &log) {
+    static void import(std::string file,char* database,HashTable<std::string> &table, std::fstream &log,QuadTree* tree) {
         std::cout << "filename to read " << file << "||| database now" << database << "\n";
         int ignoreLine = 0;
         std::fstream input;
         std::fstream output;
         input.open(file, std::ios::in);
         output.open(database, std::ios::out);
+        int imported = 0;
+        int cur_probe = 0;
+        int max_probe = 0;
+
+
+
+
         if (input.is_open() and output.is_open()) {
            std::string tp;
            std::cout << "Both Files are open\n";
@@ -112,25 +109,34 @@ public:
                    ignoreLine++;
                    continue;
                }
-               if (GISRecord::validate_record() == 1) {
+
+               if (validate_record(tp) == 1) {
                    output << tp << "\n";
-                   GISRecord::asses_record(tp,table,ignoreLine);
+                   cur_probe = GISRecord::asses_name(tp,table,ignoreLine);
                    ignoreLine++;
+                   imported++;
 
                }
+               if (cur_probe > max_probe) max_probe = cur_probe;
 
            }
         } else std::cout << "Files did not open";
 
         input.close();
         output.close();
+        ::avg = ::avg/imported;
         std::cout << "Finished Reading\n";
-//        log <<"Command 1: import\t./VA_Monterey.txt\n";
-        log.close();
-        exit(1);
+        log <<"Command 1: import\t./VA_Monterey.txt\n";
+        log << "Imported Features by name: " << imported << "\n";
+        log << "Longest probe sequence:    " << max_probe << "\n";
+        log << "Imported Locations:        " << imported << "\n";
+        log << "Average name length:       " << ::avg << "\n";
+        log << "-------------------------------------------------------------------------------------------" << "\n";
+
+
 
     }
-    static void world(std::vector<std::string> &vec, std::fstream &log) {
+    static void world(std::vector<std::string> &vec, std::fstream &log,QuadTree* tree) {
 
         int total = 0;
         std::string deg = vec[1].substr(0,3);
@@ -160,7 +166,7 @@ public:
         total = (stoi(deg)*3600) + (stoi(min)*60) +stoi(sec) ;
         if (vec[4][6] == 'S') total = total*-1;
         ::world.northLat = total;
-
+        tree = new QuadTree(::world.westLong,::world.eastLong,::world.northLat,::world.southLat);
 
         log << "------------------------------------------------------------------------------------------\n";
         log << " Latitude/longitude values in index entries are shown as signed integers, in total seconds.\n";
@@ -249,21 +255,13 @@ public:
 };
 
 int main(int argc, char *argv[]) {
-//    HashTable<std::string> table;
-//    std::cout << table.elfhash("Little Doe Hill VA");
-//    BufferPool pool;
-//    pool.addElement("5");
-//    pool.addElement("4");
-//    pool.addElement("3");
-//    pool.addElement("2");
-//    pool.addElement("1");
-//    pool.addElement("0");
-//    std::cout << pool.output();
 
-    HashTable<std::string> table;
+
     SystemManager::validate_args(argc,argv);
-    CommandProcessor::process_cmd(argv[2], argv[1],argv[3],table);
+    CommandProcessor::process_cmd(argv[2], argv[1],argv[3]);
     std::cout << "back in main";
+
+
     return 0;
 }
 
