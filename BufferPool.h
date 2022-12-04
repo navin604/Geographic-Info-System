@@ -17,7 +17,7 @@ public:
     BufferPool();
     int getMaxSize();
     void addElement(std::string);
-    std::string output();
+    std::string print();
 
 
 };
@@ -39,7 +39,8 @@ void BufferPool::addElement(std::string x) {
     pool.push_back(x);
 }
 
-std::string BufferPool::output() {
+
+std::string BufferPool::print() {
     std::ostringstream os;
     os << "MRU\n";
     for (int i = pool.size()-1; i >= 0; i--) {

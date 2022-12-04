@@ -30,20 +30,22 @@ public:
 
 
 
-    void print(){
+    std::string print(){
+        std::ostringstream os;
+        os << "Format of display is\n" << std::endl;
+        os << "Slot number: data record\n" << std::endl;
+        os << "Current table size is " << array.size() << "\n";
+        os << "Number of elements in table is " << this->currentSize << "\n";
+        os << "\n";
 
-        std::cout << "Contents of hash table:\n" << std::endl;
-        std::cout << "Total elements " << this->currentSize << "\n";
         for (int key = 0;key<capacity(); key++) {
             if (array[key].isActive)
-                std::cout << key << " " << array[key].key<< " " << array[key].value <<"\n";
+                os << key << " " << array[key].key<< " " << array[key].value <<"\n";
 
         }
 
-
-
-
-
+        os << std::endl;
+        return os.str();
     }
 
     int insert(T s, int l) {

@@ -38,6 +38,7 @@ public:
     }
     static void process_cmd(char* filename, char* database,char* logfile) {
         HashTable<std::string> table;
+        BufferPool pool;
         QuadTree *tree;
         std::fstream log;
         log.open(logfile, std::ios_base::app);
@@ -64,13 +65,19 @@ public:
                 if (vect[0] == "import") {
                     log << "Command " <<cnt<<": import " << vect[1] << "\n";
                     import(vect[1],database,table, log,tree);
+                    cnt++;
 
                 }
                 else if(vect[0] == "world") {
-                    world(vect,log,tree);
+                    world(vect,log);
+
 
                 }
-                //else if() {
+                else if(vect[0] == "debug") {
+                    log << "Command " <<cnt<<": debug " << vect[1] << "\n";
+                    debug(vect,log,table,pool);
+                    cnt++;
+                }
 //
 //                } else if() {
 //
@@ -86,6 +93,21 @@ public:
             }
             cmd_file.close();
         }
+    }
+    static void debug(std::vector<std::string> &vec, std::fstream &log,HashTable<std::string> &table,BufferPool pool){
+
+        if (vec[1] == "hash"){
+            log << table.print();
+            log << "-------------------------------------------------------------------------------------------" << "\n";
+        }else if(vec[1] == "pool"){
+            log << pool.print();
+            log << "-------------------------------------------------------------------------------------------" << "\n";
+            log.close();
+            exit(1);
+        }
+
+
+
     }
     static void import(std::string file,char* database,HashTable<std::string> &table, std::fstream &log,QuadTree* tree) {
         std::cout << "filename to read " << file << "||| database now" << database << "\n";
@@ -126,7 +148,7 @@ public:
         output.close();
         ::avg = ::avg/imported;
         std::cout << "Finished Reading\n";
-        log <<"Command 1: import\t./VA_Monterey.txt\n";
+
         log << "Imported Features by name: " << imported << "\n";
         log << "Longest probe sequence:    " << max_probe << "\n";
         log << "Imported Locations:        " << imported << "\n";
@@ -136,7 +158,7 @@ public:
 
 
     }
-    static void world(std::vector<std::string> &vec, std::fstream &log,QuadTree* tree) {
+    static void world(std::vector<std::string> &vec, std::fstream &log) {
 
         int total = 0;
         std::string deg = vec[1].substr(0,3);
@@ -166,7 +188,7 @@ public:
         total = (stoi(deg)*3600) + (stoi(min)*60) +stoi(sec) ;
         if (vec[4][6] == 'S') total = total*-1;
         ::world.northLat = total;
-        tree = new QuadTree(::world.westLong,::world.eastLong,::world.northLat,::world.southLat);
+
 
         log << "------------------------------------------------------------------------------------------\n";
         log << " Latitude/longitude values in index entries are shown as signed integers, in total seconds.\n";
