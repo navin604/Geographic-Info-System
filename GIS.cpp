@@ -39,7 +39,8 @@ public:
     static void process_cmd(char* filename, char* database,char* logfile) {
         HashTable<std::string> table;
         BufferPool pool;
-        QuadTree *tree;
+        QuadTree* tree;
+        tree = new QuadTree(0,0,0,0);
         std::fstream log;
         log.open(logfile, std::ios_base::app);
         std::cout << logfile << "\n";
@@ -69,37 +70,50 @@ public:
 
                 }
                 else if(vect[0] == "world") {
-                    world(vect,log);
+                    world(vect,log,tree);
 
 
                 }
                 else if(vect[0] == "debug") {
-                    log << "Command " <<cnt<<": debug " << vect[1] << "\n";
+                    log << "Command " <<cnt<<": debug " << vect[1] << "\n\n";
                     debug(vect,log,table,pool);
                     cnt++;
                 }
                 else if(vect[0] == "what_is") {
-                    log << "Command " <<cnt<<": what_is " << vect[1] << " " << vect[2] << "\n";
+                    log << "Command " <<cnt<<": what_is " << vect[1] << " " << vect[2] << "\n\n";
                     what_is(vect,log,table,pool,database);
                     cnt++;
 
-               } else if("quit") {
+               }
+                else if(vect[0] == "what_is_at"){
+                    log << "Command " <<cnt<<": what_is_at " << vect[1] << " " << vect[2] << "\n\n";
+                    what_is_at(vect,log,tree,pool,database);
+                }
+                else if(vect[0] == "quit"){
                     log.close();
                     exit(1);
+
                 }
 
 
-//                } else if() {
-//
-//                } else if() {
-//
-//                }
+
                 vect.clear();
 
             }
             cmd_file.close();
         }
     }
+    static void what_is_at(std::vector<std::string> &vec, std::fstream &log,QuadTree* tree,BufferPool &pool,char* database){
+        if (vec.size() != 3) {
+            log << "Invalid arguments for command: what_is_at\n";
+            return;
+        }
+
+    }
+
+
+
+
     static void what_is(std::vector<std::string> &vec, std::fstream &log,HashTable<std::string> &table,BufferPool &pool,char* database){
         std::string query = vec[1] +":"+ vec[2];
         int result = table.search(query);
@@ -181,7 +195,11 @@ public:
 
 
     }
-    static void world(std::vector<std::string> &vec, std::fstream &log) {
+    static void world(std::vector<std::string> &vec, std::fstream &log,QuadTree* tree) {
+        if (vec.size() != 5) {
+            log << "Invalid arguments for command: world\nExiting program\n";
+            return;
+        }
 
         int total = 0;
         std::string deg = vec[1].substr(0,3);
@@ -211,7 +229,8 @@ public:
         total = (stoi(deg)*3600) + (stoi(min)*60) +stoi(sec) ;
         if (vec[4][6] == 'S') total = total*-1;
         ::world.northLat = total;
-
+        free(tree);
+        tree = new QuadTree(::world.westLong,::world.eastLong,::world.southLat,::world.northLat);
 
         log << "------------------------------------------------------------------------------------------\n";
         log << " Latitude/longitude values in index entries are shown as signed integers, in total seconds.\n";
