@@ -39,8 +39,7 @@ public:
     static void process_cmd(char* filename, char* database,char* logfile) {
         HashTable<std::string> table;
         BufferPool pool;
-        QuadTree* tree;
-        tree = new QuadTree(0,0,0,0);
+        QuadTree* tree = new QuadTree(0,0,0,0);
         std::fstream log;
         log.open(logfile, std::ios_base::app);
         std::cout << logfile << "\n";
@@ -88,6 +87,10 @@ public:
                 else if(vect[0] == "what_is_at"){
                     log << "Command " <<cnt<<": what_is_at " << vect[1] << " " << vect[2] << "\n\n";
                     what_is_at(vect,log,tree,pool,database);
+                    cnt++;
+                }
+                else if(vect[0] == "what_is_in"){
+
                 }
                 else if(vect[0] == "quit"){
                     log.close();
@@ -103,11 +106,85 @@ public:
             cmd_file.close();
         }
     }
+
+    static void what_is_in(std::vector<std::string> &vec, std::fstream &log,QuadTree* tree,BufferPool &pool,char* database){
+        if (vec.size() < 5) {
+            log << "Invalid arguments for command: what_is_in\nSkipping Command\n\n";
+            return;
+        }
+        if
+        int longitude = GISRecord::longitude_convert(vec[2]);
+        int latitude = GISRecord::latitude_convert(vec[1]);
+        std::vector<int> offsets = tree->search(longitude, latitude);
+        if (offsets.size() == 0) {
+            std::cout << "Invalid search query!\n";
+        }
+        std::string offset;
+        std::string query;
+        std::vector<std::vector<std::string>> temp;
+        for (int i=0; i<offsets.size();i++){
+            offset = std::to_string(offsets[i]);
+            query = pool.search(offset,database);
+            temp.push_back(GISRecord::convert(query));
+
+        }
+        std::string lon = GISRecord::lon_str(vec[2]);
+        std::string lat = GISRecord::lat_str(vec[1]);
+        log << "The following feature(s) were found at (" <<lat<<", "<<lon << ")\n";
+        for (int i = 0;i<offsets.size();i++){
+            log << "    " << offsets[i] <<": \""<<temp[i][1] <<"\" \""<<temp[i][3] <<"\"\n";
+
+        }
+        log << "-------------------------------------------------------------------------------------------" << "\n\n";
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     static void what_is_at(std::vector<std::string> &vec, std::fstream &log,QuadTree* tree,BufferPool &pool,char* database){
         if (vec.size() != 3) {
             log << "Invalid arguments for command: what_is_at\n";
             return;
         }
+        int longitude = GISRecord::longitude_convert(vec[2]);
+        int latitude = GISRecord::latitude_convert(vec[1]);
+        std::vector<int> offsets = tree->search(longitude, latitude);
+        if (offsets.size() == 0) {
+            std::cout << "Invalid search query!\n";
+        }
+        std::string offset;
+        std::string query;
+        std::vector<std::vector<std::string>> temp;
+        for (int i=0; i<offsets.size();i++){
+            offset = std::to_string(offsets[i]);
+            query = pool.search(offset,database);
+            temp.push_back(GISRecord::convert(query));
+
+        }
+        std::string lon = GISRecord::lon_str(vec[2]);
+        std::string lat = GISRecord::lat_str(vec[1]);
+        log << "The following feature(s) were found at (" <<lat<<", "<<lon << ")\n";
+        for (int i = 0;i<offsets.size();i++){
+            log << "    " << offsets[i] <<": \""<<temp[i][1] <<"\" \""<<temp[i][3] <<"\"\n";
+
+        }
+        log << "-------------------------------------------------------------------------------------------" << "\n\n";
+
 
     }
 
@@ -172,6 +249,7 @@ public:
                if (validate_record(tp) == 1) {
                    output << tp << "\n";
                    cur_probe = GISRecord::asses_name(tp,table,ignoreLine);
+                   GISRecord::asses_coord(tp,tree,ignoreLine);
                    ignoreLine++;
                    imported++;
 
@@ -229,8 +307,9 @@ public:
         total = (stoi(deg)*3600) + (stoi(min)*60) +stoi(sec) ;
         if (vec[4][6] == 'S') total = total*-1;
         ::world.northLat = total;
-        free(tree);
-        tree = new QuadTree(::world.westLong,::world.eastLong,::world.southLat,::world.northLat);
+
+        tree->setVal(::world.westLong,::world.eastLong,::world.southLat,::world.northLat);
+
 
         log << "------------------------------------------------------------------------------------------\n";
         log << " Latitude/longitude values in index entries are shown as signed integers, in total seconds.\n";
