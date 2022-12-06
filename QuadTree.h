@@ -53,7 +53,7 @@ public:
             if (temp_root.cell == "Empty") return {};
             if (temp_root.cell == "Leaf")
             {
-                if (xcoord == temp_root.coord_x && ycoord== temp_root.coord_y)
+                if (xcoord == temp_root.coord_x and ycoord== temp_root.coord_y)
                     return temp_root.offsets;
                 return {};
             }
@@ -63,8 +63,40 @@ public:
                 {
                     //change into 4 variables
                     std::vector<int> sector = temp_root.subtree[count].sector;
-                    if (xcoord >= sector[0] && ycoord >= sector[1])
-                        if (xcoord <= sector[2] && ycoord <= sector[3])
+                    if (xcoord >= sector[0] and ycoord >= sector[1])
+                        if (xcoord <= sector[2] and ycoord <= sector[3])
+                        {
+                            temp_root= (point)temp_root.subtree[count];
+                            break;
+                        }
+                }
+                if (count == 4) return{};
+
+            }
+        }
+
+    }
+    std::vector<int> search_rectangle(int xcoord, int ycoord) {
+        point temp_root = root;
+
+
+        while (true)
+        {
+            if (temp_root.cell == "Empty") return {};
+            if (temp_root.cell == "Leaf")
+            {
+                if (xcoord == temp_root.coord_x and ycoord== temp_root.coord_y)
+                    return temp_root.offsets;
+                return {};
+            }
+            while (temp_root.cell == "QUAD");  {
+                int count;
+                for (count = 0; count < QUAD; count++)
+                {
+                    //change into 4 variables
+                    std::vector<int> sector = temp_root.subtree[count].sector;
+                    if (xcoord >= sector[0] and ycoord >= sector[1])
+                        if (xcoord <= sector[2] and ycoord <= sector[3])
                         {
                             temp_root= (point)temp_root.subtree[count];
                             break;
@@ -83,7 +115,7 @@ public:
             if (p->cell == "Empty"){
 
 
-                if ((xcoord >= p->sector[0] && xcoord <= p->sector[2]) && (ycoord >= p->sector[1] && ycoord <= p->sector[3])) {
+                if ((xcoord >= p->sector[0] and xcoord <= p->sector[2]) and (ycoord >= p->sector[1] and ycoord <= p->sector[3])) {
                     //Sets Coordinates
                     p->coord_x = xcoord;
                     p->coord_y = ycoord;
@@ -105,7 +137,7 @@ public:
                 //Checks each child of current Point
                 for(cnt = 0; cnt<::QUAD;cnt++){
                     point *curr = &(p->subtree[cnt]);
-                    if ((xcoord >= curr->sector[0] && xcoord <= curr->sector[2]) && (ycoord >= curr->sector[1] && ycoord <= curr->sector[3])) {
+                    if ((xcoord >= curr->sector[0] and xcoord <= curr->sector[2]) and (ycoord >= curr->sector[1] and ycoord <= curr->sector[3])) {
                         p = curr;
                         break;
                     }
@@ -115,7 +147,7 @@ public:
             }
             //Adds offset to leaf or splits leaf into 4 children
             if (p->cell =="Leaf") {
-                if (xcoord == p->coord_x && ycoord == p->coord_y) {
+                if (xcoord == p->coord_x and ycoord == p->coord_y) {
 
                     for (int i = 0; i<offset.size();i++) {
                         p->offsets.push_back(offset[i]);
