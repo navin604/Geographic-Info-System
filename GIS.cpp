@@ -29,7 +29,7 @@ public:
         int lon = GISRecord::longitude_convert(record[8]);
         int lat = GISRecord::latitude_convert(record[7]);
 
-        if ((lon > ::world.westLong) && (lon < ::world.eastLong) && (lat > ::world.southLat) && (lat < ::world.northLat)) {
+        if ((lon > ::world.westLong) and (lon < ::world.eastLong) and (lat > ::world.southLat) and (lat < ::world.northLat)) {
             return 1;
         }
         return 0;
@@ -108,33 +108,62 @@ public:
     }
 
     static void what_is_in(std::vector<std::string> &vec, std::fstream &log,QuadTree* tree,BufferPool &pool,char* database){
+        bool long_option = false;
+        bool filter_option = false;
+        std::string filter ="";
+
         if (vec.size() < 5) {
             log << "Invalid arguments for command: what_is_in\nSkipping Command\n\n";
             return;
         }
-        if
-        int longitude = GISRecord::longitude_convert(vec[2]);
-        int latitude = GISRecord::latitude_convert(vec[1]);
-        std::vector<int> offsets = tree->search(longitude, latitude);
+        else if (vec.size() == 6) {
+                if (vec[1] == "-long") {
+                    long_option = true;
+                }
+                else {
+                    log << "Invalid arguments for command: what_is_in\nSkipping Command\n\n";
+                    return;
+                }
+
+            }
+        else if (vec.size() == 7){
+            if ((vec[1] == "-filter") and ((vec[2] == "structure") or (vec[2] == "water") or (vec[2] == "pop"))) {
+                filter_option = false;
+                filter =vec[2];
+            }
+            else {
+                log << "Invalid arguments for command: what_is_in\nSkipping Command\n\n";
+                return;
+            }
+
+        }
+        int longitude;
+        int latitude;
+        int half_height;
+        int half_width;
+        if (long_option) {
+            longitude = GISRecord::longitude_convert(vec[3]);
+            latitude = GISRecord::latitude_convert(vec[2]);
+            half_height = stoi(vec[4]);
+            half_width =  stoi(vec[5]);
+        }
+        else if (filter_option){
+            longitude = GISRecord::longitude_convert(vec[4]);
+            latitude = GISRecord::latitude_convert(vec[3]);
+            half_height = stoi(vec[5]);
+            half_width =  stoi(vec[6]);
+        }
+        else {
+            longitude = GISRecord::longitude_convert(vec[2]);
+            latitude = GISRecord::latitude_convert(vec[1]);
+            half_height = stoi(vec[3]);
+            half_width =  stoi(vec[4]);
+        }
+        std::vector<int> offsets = tree->search_rectangle();
         if (offsets.size() == 0) {
             std::cout << "Invalid search query!\n";
         }
-        std::string offset;
-        std::string query;
-        std::vector<std::vector<std::string>> temp;
-        for (int i=0; i<offsets.size();i++){
-            offset = std::to_string(offsets[i]);
-            query = pool.search(offset,database);
-            temp.push_back(GISRecord::convert(query));
 
-        }
-        std::string lon = GISRecord::lon_str(vec[2]);
-        std::string lat = GISRecord::lat_str(vec[1]);
-        log << "The following feature(s) were found at (" <<lat<<", "<<lon << ")\n";
-        for (int i = 0;i<offsets.size();i++){
-            log << "    " << offsets[i] <<": \""<<temp[i][1] <<"\" \""<<temp[i][3] <<"\"\n";
-
-        }
         log << "-------------------------------------------------------------------------------------------" << "\n\n";
 
 
