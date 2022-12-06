@@ -74,9 +74,7 @@ std::string BufferPool::search(std::string offset,char* database) {
                 return temp.record;
             }
         }
-
     }
-
     int x = stoi(offset);
     std::string line;
     std::ifstream myfile(database);
