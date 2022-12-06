@@ -32,8 +32,8 @@ public:
 
     std::string print(){
         std::ostringstream os;
-        os << "Format of display is\n" << std::endl;
-        os << "Slot number: data record\n" << std::endl;
+        os << "Format of display is\n";
+        os << "Slot number: data record\n";
         os << "Current table size is " << array.size() << "\n";
         os << "Number of elements in table is " << this->currentSize << "\n";
         os << "\n";
