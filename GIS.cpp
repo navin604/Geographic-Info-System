@@ -42,26 +42,26 @@ public:
         QuadTree* tree = new QuadTree(0,0,0,0);
         std::fstream log;
         log.open(logfile, std::ios_base::app);
-        std::cout << logfile << "\n";
+        //std::cout << logfile << "\n";
         std::vector<std::string> vect;
-        std::cout << filename << " process\n";
+        //std::cout << filename << " process\n";
         std::fstream cmd_file;
         int cnt = 1;
-        std::cout << "Attempting to open: " << filename << "\n";
+        //std::cout << "Attempting to open: " << filename << "\n";
         cmd_file.open(filename, std::ios::in);
         if (cmd_file.is_open()) {
-            std::cout << "File open, now reading\n";
+            //std::cout << "File open, now reading\n";
             std::string tp;
-            std::cout << "---------------------------------------------------------\n";
+            //std::cout << "---------------------------------------------------------\n";
             while(getline(cmd_file,tp)) {
                 if (tp[0] == ';'){
                     log << tp <<"\n";
                     continue;
                 }
 
-                std::cout << tp << "\n";
+                //std::cout << tp << "\n";
                 ex(tp, vect);
-                std::cout << "---------------------------------------------------------\n";
+                //std::cout << "---------------------------------------------------------\n";
                 if (vect[0] == "import") {
                     log << "Command " <<cnt<<": import " << vect[1] << "\n";
                     import(vect[1],database,table, log,tree);
@@ -69,6 +69,7 @@ public:
 
                 }
                 else if(vect[0] == "world") {
+                    log << tp << "\n\n";
                     world(vect,log,tree);
 
 
@@ -90,7 +91,9 @@ public:
                     cnt++;
                 }
                 else if(vect[0] == "what_is_in"){
-
+                    log << "Command " <<cnt<<": "<< tp << "\n\n";
+                    what_is_in(vect,log,tree,pool,database);
+                    cnt++;
                 }
                 else if(vect[0] == "quit"){
                     log.close();
@@ -128,7 +131,7 @@ public:
             }
         else if (vec.size() == 7){
             if ((vec[1] == "-filter") and ((vec[2] == "structure") or (vec[2] == "water") or (vec[2] == "pop"))) {
-                filter_option = false;
+                filter_option = true;
                 filter =vec[2];
             }
             else {
@@ -137,34 +140,104 @@ public:
             }
 
         }
+        std::string str_long;
+        std::string str_lat;
         int longitude;
         int latitude;
         int half_height;
         int half_width;
         if (long_option) {
+            str_long=vec[3];
+            str_lat=vec[2];
             longitude = GISRecord::longitude_convert(vec[3]);
             latitude = GISRecord::latitude_convert(vec[2]);
             half_height = stoi(vec[4]);
             half_width =  stoi(vec[5]);
         }
         else if (filter_option){
+            str_long=vec[4];
+            str_lat=vec[3];
             longitude = GISRecord::longitude_convert(vec[4]);
             latitude = GISRecord::latitude_convert(vec[3]);
             half_height = stoi(vec[5]);
             half_width =  stoi(vec[6]);
         }
         else {
+            str_long=vec[2];
+            str_lat=vec[1];
             longitude = GISRecord::longitude_convert(vec[2]);
             latitude = GISRecord::latitude_convert(vec[1]);
             half_height = stoi(vec[3]);
             half_width =  stoi(vec[4]);
         }
-        std::vector<int> offsets = tree->search_rectangle();
+        std::vector<int> offsets = tree->search_rectangle(longitude-half_width, longitude+half_width,latitude-half_height,latitude+half_height);
         if (offsets.size() == 0) {
-            std::cout << "Invalid search query!\n";
+            log << "Nothing was found int (" << GISRecord::lat_str(str_lat) << " +/- " <<half_height << ", "<< GISRecord::lon_str(str_long) << " +/- " <<half_width << ")\n";
+            log << "\n-------------------------------------------------------------------------------------------" << "\n\n";
+            return;
+        }
+        std::string offset;
+        std::string query;
+        std::vector<std::vector<std::string>> temp;
+        for (int i=0; i<offsets.size();i++){
+            offset = std::to_string(offsets[i]);
+            query = pool.search(offset,database);
+            std::cout << pool.print() << "\n";
+            temp.push_back(GISRecord::convert(query));
+
+        }
+        std::string lon = GISRecord::lon_str(str_long);
+        std::string lat = GISRecord::lat_str(str_lat);
+        int filterNum = 0;
+
+        if (long_option) {
+            log << "The following "<<offsets.size() << " feature(s) were found at (" <<lat<< " +/- " <<half_height << ", "<<lon << " +/- " <<half_width << ")\n\n";
+            for (int i = 0;i<temp.size();i++){
+                log << "Feature ID  :  " <<temp[i][0] <<"\n";
+                log << "Feature Name  :  " <<temp[i][1] <<"\n";
+                log << "Feature Cat :  " <<temp[i][2] <<"\n";
+                log << "State  :  " <<temp[i][3] <<"\n";
+                log << "County  :  " <<temp[i][5] <<"\n";
+                log << "Longitude   :  " <<GISRecord::lon_str(temp[i][8]) <<"\n";
+                log << "Latitude   :  " <<GISRecord::lat_str(temp[i][7]) <<"\n";
+                log << "Elev in ft  :  " <<temp[i][16] <<"\n";
+                log << "USGS Quad   :  " <<temp[i][17] <<"\n";
+                log << "Date created  :  " <<temp[i][18] <<"\n";
+                log << "\n";
+
+
+            }
+            log << "-------------------------------------------------------------------------------------------" << "\n\n";
+            return;
+
+        } else if (filter_option) {
+            log << "The following features matching your criteria were found in  (" <<lat<< " +/- " <<half_height << ", "<<lon << " +/- " <<half_width << ")\n\n";
+            for (int i = 0; i<temp.size(); i++) {
+                if (GISRecord::check_filter(temp[i][2],filter)==1){
+                    filterNum++;
+                    log << "    " << offsets[i] <<": \""<<temp[i][1] <<"\" \""<<temp[i][3] <<"\"   \"("<< GISRecord::lat_str(temp[i][7]) <<", "<<GISRecord::lon_str(temp[i][8]) << ")\n";
+                }
+
+            }
+            log << "\nThere were " << filterNum << " features of type " << filter <<"\n";
+            log << "\n-------------------------------------------------------------------------------------------" << "\n\n";
+            return;
+
         }
 
-        log << "-------------------------------------------------------------------------------------------" << "\n\n";
+
+
+
+        log << "The following "<<offsets.size() << " feature(s) were found at (" <<lat<< " +/- " <<half_height << ", "<<lon << " +/- " <<half_width << ")\n\n";
+
+
+        for (int i = 0;i<offsets.size();i++){
+            log << "    " << offsets[i] <<": \""<<temp[i][1] <<"\" \""<<temp[i][3] <<"\"   \"("<< GISRecord::lat_str(temp[i][7]) <<", "<<GISRecord::lon_str(temp[i][8]) << ")\n";
+
+        }
+        log << "\n-------------------------------------------------------------------------------------------" << "\n\n";
+
+
 
 
     }
@@ -194,7 +267,7 @@ public:
         int latitude = GISRecord::latitude_convert(vec[1]);
         std::vector<int> offsets = tree->search(longitude, latitude);
         if (offsets.size() == 0) {
-            std::cout << "Invalid search query!\n";
+            //std::cout << "Invalid search query!\n";
         }
         std::string offset;
         std::string query;
@@ -202,14 +275,20 @@ public:
         for (int i=0; i<offsets.size();i++){
             offset = std::to_string(offsets[i]);
             query = pool.search(offset,database);
+            std::cout << pool.print() << "\n";
             temp.push_back(GISRecord::convert(query));
 
         }
         std::string lon = GISRecord::lon_str(vec[2]);
         std::string lat = GISRecord::lat_str(vec[1]);
+        if (offsets.size() == 0) {
+            log << "Nothing was found at (" <<lat<<", "<<lon << ")\n";
+            log << "-------------------------------------------------------------------------------------------" << "\n\n";
+            return;
+        }
         log << "The following feature(s) were found at (" <<lat<<", "<<lon << ")\n";
         for (int i = 0;i<offsets.size();i++){
-            log << "    " << offsets[i] <<": \""<<temp[i][1] <<"\" \""<<temp[i][3] <<"\"\n";
+            log << "    " << offsets[i] <<": \""<<temp[i][1] <<"\" \"" <<temp[i][5] << "\"  \"" <<temp[i][3] <<"\"\n";
 
         }
         log << "-------------------------------------------------------------------------------------------" << "\n\n";
@@ -225,6 +304,7 @@ public:
         int result = table.search(query);
         if (result == -1) {
             log << "No records match \""<<vec[1] <<"\" and \""<< vec[2] << "\"\n";
+            log << "-------------------------------------------------------------------------------------------" << "\n\n";
             return;
         }
         std::string offset = std::to_string(result);
@@ -233,7 +313,7 @@ public:
         std::string lon = GISRecord::lon_str(temp[8]);
         std::string lat = GISRecord::lat_str(temp[7]);
         log << offset << ": " << temp[5] << " (" <<lat<<", "<<lon << ")\n";
-        log << "-------------------------------------------------------------------------------------------" << "\n";
+        log << "-------------------------------------------------------------------------------------------" << "\n\n";
 
 
 
@@ -242,10 +322,10 @@ public:
 
         if (vec[1] == "hash"){
             log << table.print();
-            log << "-------------------------------------------------------------------------------------------" << "\n";
+            log << "-------------------------------------------------------------------------------------------" << "\n\n";
         }else if(vec[1] == "pool"){
             log << pool.print();
-            log << "-------------------------------------------------------------------------------------------" << "\n";
+            log << "-------------------------------------------------------------------------------------------" << "\n\n";
 
         }
 
@@ -253,7 +333,7 @@ public:
 
     }
     static void import(std::string file,char* database,HashTable<std::string> &table, std::fstream &log,QuadTree* tree) {
-        std::cout << "filename to read " << file << "||| database now" << database << "\n";
+        //std::cout << "filename to read " << file << "||| database now" << database << "\n";
         int ignoreLine = -1;
         std::fstream input;
         std::fstream output;
@@ -268,7 +348,7 @@ public:
 
         if (input.is_open() and output.is_open()) {
            std::string tp;
-           std::cout << "Both Files are open\n";
+           //std::cout << "Both Files are open\n";
            while (getline(input,tp)) {
                if (ignoreLine == -1) {
                    ignoreLine++;
@@ -286,18 +366,18 @@ public:
                if (cur_probe > max_probe) max_probe = cur_probe;
 
            }
-        } else std::cout << "Files did not open";
+        } else //std::cout << "Files did not open";
 
         input.close();
         output.close();
         ::avg = ::avg/imported;
-        std::cout << "Finished Reading\n";
+        //std::cout << "Finished Reading\n";
 
         log << "Imported Features by name: " << imported << "\n";
         log << "Longest probe sequence:    " << max_probe << "\n";
         log << "Imported Locations:        " << imported << "\n";
         log << "Average name length:       " << ::avg << "\n";
-        log << "-------------------------------------------------------------------------------------------" << "\n";
+        log << "-------------------------------------------------------------------------------------------" << "\n\n";
 
 
 
@@ -347,7 +427,7 @@ public:
         log << "                                    "<< ::world.northLat << "\n";
         log << "                        "<<::world.westLong<< "                "<<::world.eastLong << "\n";
         log << "                                    "<< ::world.southLat << "\n";
-        log << "------------------------------------------------------------------------------------------\n";
+        log << "------------------------------------------------------------------------------------------\n\n";
 
     }
 
@@ -396,11 +476,11 @@ class SystemManager {
 public:
     static void validate_args(int argc, char *argv[]) {
         // ./GIS <database file> <command script> <log file>
-        if (argc!=4) {
-            std::cout << "Error: Program should be invoked as ->"
-                         " ./GIS <database file> <command script> <log file>\n";
-            exit(0);
-        }
+//        if (argc!=4) {
+//            std::cout << "Error: Program should be invoked as ->"
+//                         " ./GIS <database file> <command script> <log file>\n";
+//            exit(0);
+//        }
         file_setup(argv[1]);
         file_setup(argv[3]);
         Logger::log_init(argv);
@@ -408,18 +488,18 @@ public:
     static void file_setup(char* filename) {
         // Deletes and creates database & log files
         if (remove(filename)!=0) {
-            std::cout << filename << " does not exist, now creating..." << "\n";
+            //std::cout << filename << " does not exist, now creating..." << "\n";
         } else {
-            std::cout << filename << " exists, has been deleted\n";
+            //std::cout << filename << " exists, has been deleted\n";
         }
 
         std::fstream file;
         file.open(filename, std::ios::out);
         if (!file) {
-            std:: cout<<"Error in creating file!!!\n Now exiting!\n";
+            //std:: cout<<"Error in creating file!!!\n Now exiting!\n";
             std::exit(0);
         }
-        std::cout << filename << " has been created\n";
+        //std::cout << filename << " has been created\n";
 
 
     }
