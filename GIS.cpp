@@ -10,59 +10,60 @@
 #include <ctime>
 #include <chrono>
 
-struct DMS {};
 
-struct {int westLong;
-        int eastLong;
-        int southLat;
-        int northLat;
+
+struct {long int westLong;
+        long int eastLong;
+        long int southLat;
+        long int northLat;
 }world;
-int avg = 0;
 
 
 class CommandProcessor {
 
 public:
-    static int validate_record(std::string s){
-        std::vector<std::string> record = GISRecord::convert(s);
-        avg += record[1].size();
-        int lon = GISRecord::longitude_convert(record[8]);
-        int lat = GISRecord::latitude_convert(record[7]);
+    static int validate_record(std::string s,int &avg){
 
-        if ((lon > ::world.westLong) and (lon < ::world.eastLong) and (lat > ::world.southLat) and (lat < ::world.northLat)) {
+        std::vector<std::string> record = GISRecord::convert(s);
+        avg += record[1].length();
+
+        long int lon = GISRecord::longitude_convert(record[8]);
+        long int lat = GISRecord::latitude_convert(record[7]);
+        if (lon == 0 or lat == 0){
+            return 0;
+        }
+        else if ((lon > ::world.westLong) and (lon < ::world.eastLong) and (lat > ::world.southLat) and (lat < ::world.northLat)) {
             return 1;
         }
         return 0;
 
 
     }
-    static void process_cmd(char* filename, char* database,char* logfile) {
+    static void process_cmd(char* filename, char* database, std::fstream &log) {
         HashTable<std::string> table;
         BufferPool pool;
         QuadTree* tree = new QuadTree(0,0,0,0);
-        std::fstream log;
-        log.open(logfile, std::ios_base::app);
-        //std::cout << logfile << "\n";
         std::vector<std::string> vect;
-        //std::cout << filename << " process\n";
+
         std::fstream cmd_file;
         int cnt = 1;
-        //std::cout << "Attempting to open: " << filename << "\n";
+
         cmd_file.open(filename, std::ios::in);
         if (cmd_file.is_open()) {
-            //std::cout << "File open, now reading\n";
+
             std::string tp;
-            //std::cout << "---------------------------------------------------------\n";
+
             while(getline(cmd_file,tp)) {
                 if (tp[0] == ';'){
                     log << tp <<"\n";
                     continue;
                 }
 
-                //std::cout << tp << "\n";
+
                 ex(tp, vect);
-                //std::cout << "---------------------------------------------------------\n";
+
                 if (vect[0] == "import") {
+
                     log << "Command " <<cnt<<": import " << vect[1] << "\n";
                     import(vect[1],database,table, log,tree);
                     cnt++;
@@ -76,7 +77,7 @@ public:
                 }
                 else if(vect[0] == "debug") {
                     log << "Command " <<cnt<<": debug " << vect[1] << "\n\n";
-                    debug(vect,log,table,pool);
+                    debug(vect,log,table,pool,tree);
                     cnt++;
                 }
                 else if(vect[0] == "what_is") {
@@ -96,12 +97,15 @@ public:
                     cnt++;
                 }
                 else if(vect[0] == "quit"){
+                    log << "Command " <<cnt<<": QUIT " << "\n";
+                    log << "Terminating execution of commands.\n";
+                    log << "------------------------------------------------------------------------------------------\n";
                     log.close();
                     exit(1);
 
+                } else {
+                    log << "INVALID COMMAND!";
                 }
-
-
 
                 vect.clear();
 
@@ -178,17 +182,48 @@ public:
         }
         std::string offset;
         std::string query;
-        std::vector<std::vector<std::string>> temp;
-        for (int i=0; i<offsets.size();i++){
-            offset = std::to_string(offsets[i]);
-            query = pool.search(offset,database);
-            std::cout << pool.print() << "\n";
-            temp.push_back(GISRecord::convert(query));
 
+        std::vector<std::vector<std::string>> temp;
+        if (filter_option) {
+            for (int i=0; i<offsets.size();i++) {
+                offset = std::to_string(offsets[i]);
+                query = pool.filter_search(offset, database, filter);
+                if (query == "") {
+                    continue;
+                }
+
+                temp.push_back(GISRecord::convert(query));
+            }
         }
+
         std::string lon = GISRecord::lon_str(str_long);
         std::string lat = GISRecord::lat_str(str_lat);
         int filterNum = 0;
+        if (filter_option) {
+
+            log << "The following features matching your criteria were found in  (" <<lat<< " +/- " <<half_height << ", "<<lon << " +/- " <<half_width << ")\n\n";
+            for (int i = 0; i<temp.size(); i++) {
+                if (GISRecord::check_filter(temp[i][2],filter)==1){
+                    filterNum++;
+                    log << "    " << offsets[i] <<": \""<<temp[i][1] <<"\" \""<<temp[i][3] <<"\"   \"("<< GISRecord::lat_str(temp[i][7]) <<", "<<GISRecord::lon_str(temp[i][8]) << ")\n";
+                }
+
+            }
+            log << "\nThere were " << filterNum << " features of type " << filter <<"\n";
+            log << "\n-------------------------------------------------------------------------------------------" << "\n\n";
+            return;
+
+        }
+
+
+
+        for (int i=0; i<offsets.size();i++){
+            offset = std::to_string(offsets[i]);
+            query = pool.search(offset,database);
+            temp.push_back(GISRecord::convert(query));
+
+        }
+
 
         if (long_option) {
             log << "The following "<<offsets.size() << " feature(s) were found at (" <<lat<< " +/- " <<half_height << ", "<<lon << " +/- " <<half_width << ")\n\n";
@@ -210,23 +245,7 @@ public:
             log << "-------------------------------------------------------------------------------------------" << "\n\n";
             return;
 
-        } else if (filter_option) {
-            log << "The following features matching your criteria were found in  (" <<lat<< " +/- " <<half_height << ", "<<lon << " +/- " <<half_width << ")\n\n";
-            for (int i = 0; i<temp.size(); i++) {
-                if (GISRecord::check_filter(temp[i][2],filter)==1){
-                    filterNum++;
-                    log << "    " << offsets[i] <<": \""<<temp[i][1] <<"\" \""<<temp[i][3] <<"\"   \"("<< GISRecord::lat_str(temp[i][7]) <<", "<<GISRecord::lon_str(temp[i][8]) << ")\n";
-                }
-
-            }
-            log << "\nThere were " << filterNum << " features of type " << filter <<"\n";
-            log << "\n-------------------------------------------------------------------------------------------" << "\n\n";
-            return;
-
         }
-
-
-
 
         log << "The following "<<offsets.size() << " feature(s) were found at (" <<lat<< " +/- " <<half_height << ", "<<lon << " +/- " <<half_width << ")\n\n";
 
@@ -237,26 +256,7 @@ public:
         }
         log << "\n-------------------------------------------------------------------------------------------" << "\n\n";
 
-
-
-
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     static void what_is_at(std::vector<std::string> &vec, std::fstream &log,QuadTree* tree,BufferPool &pool,char* database){
         if (vec.size() != 3) {
@@ -266,16 +266,12 @@ public:
         int longitude = GISRecord::longitude_convert(vec[2]);
         int latitude = GISRecord::latitude_convert(vec[1]);
         std::vector<int> offsets = tree->search(longitude, latitude);
-        if (offsets.size() == 0) {
-            //std::cout << "Invalid search query!\n";
-        }
         std::string offset;
         std::string query;
         std::vector<std::vector<std::string>> temp;
         for (int i=0; i<offsets.size();i++){
             offset = std::to_string(offsets[i]);
             query = pool.search(offset,database);
-            std::cout << pool.print() << "\n";
             temp.push_back(GISRecord::convert(query));
 
         }
@@ -318,7 +314,7 @@ public:
 
 
     }
-    static void debug(std::vector<std::string> &vec, std::fstream &log,HashTable<std::string> &table,BufferPool &pool){
+    static void debug(std::vector<std::string> &vec, std::fstream &log,HashTable<std::string> &table,BufferPool &pool,QuadTree* tree){
 
         if (vec[1] == "hash"){
             log << table.print();
@@ -328,36 +324,44 @@ public:
             log << "-------------------------------------------------------------------------------------------" << "\n\n";
 
         }
+        else if(vec[1] == "quad"){
+            log << "This command attempts to print using DFS. I apologize for poor formatting!\n";
+            log << tree->print();
+            log << "-------------------------------------------------------------------------------------------" << "\n\n";
+
+        }
+        else if(vec[1] == "world"){
+            log << "-------------------------------------------------------------------------------------------" << "\n\n";
+
+        }
 
 
 
     }
     static void import(std::string file,char* database,HashTable<std::string> &table, std::fstream &log,QuadTree* tree) {
-        //std::cout << "filename to read " << file << "||| database now" << database << "\n";
+        std::cout << "filename to read " << file << "||| database now" << database << "\n";
         int ignoreLine = -1;
         std::fstream input;
         std::fstream output;
         input.open(file, std::ios::in);
-        output.open(database, std::ios::out);
+        output.open(database, std::fstream::app);
         int imported = 0;
         int cur_probe = 0;
         int max_probe = 0;
-
-
-
-
+        int avg = 0;
         if (input.is_open() and output.is_open()) {
+            std::cout << "Both Files are open\n";
            std::string tp;
-           //std::cout << "Both Files are open\n";
            while (getline(input,tp)) {
                if (ignoreLine == -1) {
                    ignoreLine++;
                    continue;
                }
+               if (validate_record(tp,avg) == 1) {
 
-               if (validate_record(tp) == 1) {
                    output << tp << "\n";
                    cur_probe = GISRecord::asses_name(tp,table,ignoreLine);
+
                    GISRecord::asses_coord(tp,tree,ignoreLine);
                    ignoreLine++;
                    imported++;
@@ -366,19 +370,32 @@ public:
                if (cur_probe > max_probe) max_probe = cur_probe;
 
            }
-        } else //std::cout << "Files did not open";
+        } else {
+            log << "Files did not open (check path) - Exiting program\n";
+            log.close();
+            exit(1);
+        }
 
         input.close();
         output.close();
-        ::avg = ::avg/imported;
-        //std::cout << "Finished Reading\n";
+        if (imported !=0){
+            avg = avg/imported;
+        }
+        else {
+            log << "No files were imported, exiting!\n";
+            log.close();
+            exit(1);
+        }
+
 
         log << "Imported Features by name: " << imported << "\n";
         log << "Longest probe sequence:    " << max_probe << "\n";
         log << "Imported Locations:        " << imported << "\n";
-        log << "Average name length:       " << ::avg << "\n";
+        log << "Average name length:       " << avg << "\n";
         log << "-------------------------------------------------------------------------------------------" << "\n\n";
-
+        imported = 0;
+        max_probe = 0;
+        avg = 0;
 
 
     }
@@ -437,6 +454,9 @@ public:
 
 
     static void ex(std::string s,std::vector<std::string> &vec) {
+        if (s==""){
+            vec.push_back("F");
+        }
         std::istringstream iss(s);
         std::string word;
         while(std::getline(iss, word, '\t'))   // but we can specify a different one
@@ -466,21 +486,16 @@ public:
     }
 
 
-
-    static void add_cmd() {
-
-    }
 };
 
 class SystemManager {
 public:
     static void validate_args(int argc, char *argv[]) {
-        // ./GIS <database file> <command script> <log file>
-//        if (argc!=4) {
-//            std::cout << "Error: Program should be invoked as ->"
-//                         " ./GIS <database file> <command script> <log file>\n";
-//            exit(0);
-//        }
+        if (argc!=4) {
+            std::cout << "Error: Program should be invoked as ->"
+                         " ./GIS <database file> <command script> <log file>\n";
+            exit(0);
+        }
         file_setup(argv[1]);
         file_setup(argv[3]);
         Logger::log_init(argv);
@@ -488,9 +503,9 @@ public:
     static void file_setup(char* filename) {
         // Deletes and creates database & log files
         if (remove(filename)!=0) {
-            //std::cout << filename << " does not exist, now creating..." << "\n";
+            std::cout << filename << " does not exist, now creating..." << "\n";
         } else {
-            //std::cout << filename << " exists, has been deleted\n";
+            std::cout << filename << " exists, has been deleted\n";
         }
 
         std::fstream file;
@@ -502,6 +517,7 @@ public:
         //std::cout << filename << " has been created\n";
 
 
+
     }
 
 };
@@ -510,8 +526,10 @@ int main(int argc, char *argv[]) {
 
 
     SystemManager::validate_args(argc,argv);
-    CommandProcessor::process_cmd(argv[2], argv[1],argv[3]);
-    std::cout << "back in main";
+    std::fstream log;
+    log.open(argv[3], std::ios_base::app);
+    CommandProcessor::process_cmd(argv[2], argv[1],log);
+
 
 
     return 0;
