@@ -70,29 +70,29 @@ public:
     int insert(T s, int l) {
         int i =0;
         int probe;
+        int limit =100;
         if (currentSize >= capacity() * MAX_LOAD) expand();
         //Calculate hash val
         while (true) {
             probe = 0;
             int key = elfhash(s) % capacity();
-            for (int x=0; x<100;x++) {
+            for (int x=0; x<limit;x++) {
                 if (!isActive(key)) {
                     array[key] = std::move(HashEntry{std::move(s), std::move(l), true});
                     currentSize++;
+
                     return probe;
                 }
+
                 // If there is a collision
                 // iterating through all
                 // possible quadratic values
                 probe++;
-
                 i++;
                 //Use key in probe calc or else
                 //max prob does not match sample log
-                key = (key + (pow(i,i) + i) / 2);
-                // Computing the new hash value
-                key = key % capacity();
 
+                key = (key + (i*i + i) / 2) % capacity();
 
             }
         }
