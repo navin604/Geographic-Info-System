@@ -17,7 +17,7 @@ struct {long int westLong;
     long int eastLong;
     long int southLat;
     long int northLat;
-}world;
+} world;
 
 
 class CommandProcessor {
@@ -184,7 +184,7 @@ public:
         std::vector<int> offsets = tree->search_rectangle(longitude-half_width, longitude+half_width,latitude-half_height,latitude+half_height);
 
         if (offsets.size() == 0) {
-            log << "Nothing was found int (" << GISRecord::lat_str(str_lat) << " +/- " <<half_height << ", "<< GISRecord::lon_str(str_long) << " +/- " <<half_width << ")\n";
+            log << "Nothing was found in (" << GISRecord::lat_str(str_lat) << " +/- " <<half_height << ", "<< GISRecord::lon_str(str_long) << " +/- " <<half_width << ")\n";
             log << "\n-------------------------------------------------------------------------------------------" << "\n\n";
             return;
         }
@@ -501,4 +501,3 @@ int main(int argc, char *argv[]) {
     CommandProcessor::process_cmd(argv[2], argv[1],log);
     return 0;
 }
-

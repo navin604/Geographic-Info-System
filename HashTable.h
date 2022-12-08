@@ -10,8 +10,7 @@
 #define MAX_LOAD 0.70
 
 template<typename T>
-class HashTable
-{
+class HashTable {
 public:
     explicit HashTable(int size = 1024) : array(size) {
         currentSize = 0;
@@ -116,7 +115,6 @@ private:
     }
     void rehash(int newSize) {
         std::vector<HashEntry> oldArray = array;
-
         // Create new double-sized, empty table
         array.resize(newSize);
         for (auto &entry: array)
