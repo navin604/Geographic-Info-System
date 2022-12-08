@@ -22,10 +22,11 @@ private:
         //Represents whether node is empty, a leaf, or has kids(quad)
         std::string cell;
     };
-    //Holds nodes in DFS traversal of tree
+	//Holds nodes in DFS traversal of tree
     std::vector<point> dfs_nodes;
     point root;
 
+    
 public:
 
     QuadTree(int westLong, int eastLong, int southLat, int northLat) {
