@@ -40,7 +40,7 @@ public:
         os << "\n";
         for (int key = 0;key<capacity(); key++) {
             if (array[key].isActive)
-                os << key << " " << array[key].key<< " " << array[key].value <<"\n";
+                os << key << ": [" << array[key].key<< "], [" << array[key].value <<"]]\n";
         }
         os << std::endl;
         return os.str();
@@ -68,22 +68,21 @@ public:
         int limit =100;
         if (currentSize >= capacity() * MAX_LOAD) expand();
         //Calculate hash val
+        int key = elfhash(s) % capacity();
+        probe = 0;
         while (true) {
-            probe = 0;
-            int key = elfhash(s) % capacity();
-            for (int x=0; x<limit;x++) {
-                if (!isActive(key)) {
-                    //Inserts if slot available
-                    array[key] = std::move(HashEntry{std::move(s), std::move(l), true});
-                    currentSize++;
-                    return probe;
-                }
-                //Count prob sequence
-                probe++;
-                i++;
-                //Quadratic Probing
-                key = (key + (i*i + i) / 2) % capacity();
+            if (!isActive(key)) {
+                //Inserts if slot available
+                array[key] = std::move(HashEntry{std::move(s), std::move(l), true});
+                currentSize++;
+                return probe;
             }
+            //Count prob sequence
+            probe++;
+            i++;
+            //Quadratic Probing
+            key = (key + (i*i + i) / 2) % capacity();
+
         }
     }
     int elfhash(std::string &s) {

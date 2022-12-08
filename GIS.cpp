@@ -57,7 +57,7 @@ public:
                 ex(tp, vect);
                 if (vect[0] == "import") {
                     //Imports records
-                    log << "Command " <<cnt<<": import " << vect[1] << "\n";
+                    log << "Command " <<cnt<<": import " << vect[1] << "\n\n";
                     import(vect[1],database,table, log,tree);
                     cnt++;
                 }
@@ -102,7 +102,7 @@ public:
                     exit(1);
                 } else {
                     //Skips invalid command
-                    log << "INVALID COMMAND!";
+                    log << "INVALID COMMAND!\n";
                 }
                 //Clears command vector
                 vect.clear();
