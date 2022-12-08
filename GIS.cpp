@@ -1,3 +1,7 @@
+//
+// Created by Navin on 2022-12-07.
+//
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -10,9 +14,9 @@
 #include <chrono>
 
 struct {long int westLong;
-        long int eastLong;
-        long int southLat;
-        long int northLat;
+    long int eastLong;
+    long int southLat;
+    long int northLat;
 }world;
 
 
@@ -29,7 +33,7 @@ public:
         else if ((lon > ::world.westLong) and (lon < ::world.eastLong) and (lat > ::world.southLat) and (lat < ::world.northLat)) {
             //Calculates average name length per valid record
             avg += record[1].length();
-			return 1;
+            return 1;
         }
         return 0;
 
@@ -77,7 +81,7 @@ public:
                     log << "Command " <<cnt<<": what_is " << vect[1] << " " << vect[2] << "\n\n";
                     what_is(vect,log,table,pool,database);
                     cnt++;
-               }
+                }
                 else if(vect[0] == "what_is_at"){
                     //Searches for records at given coordinates
                     log << "Command " <<cnt<<": what_is_at " << vect[1] << " " << vect[2] << "\n\n";
@@ -108,6 +112,10 @@ public:
                 vect.clear();
             }
             cmd_file.close();
+        } else{
+            log << "INVALID SCRIPT! CLOSING!\n";
+            log.close();
+            exit(1);
         }
     }
 
@@ -121,15 +129,15 @@ public:
             return;
         }
         else if (vec.size() == 6) {
-                if (vec[1] == "-long") {
-                    //Sets long option
-                    long_option = true;
-                }
-                else {
-                    log << "Invalid arguments for command: what_is_in\nSkipping Command\n\n";
-                    return;
-                }
+            if (vec[1] == "-long") {
+                //Sets long option
+                long_option = true;
             }
+            else {
+                log << "Invalid arguments for command: what_is_in\nSkipping Command\n\n";
+                return;
+            }
+        }
         else if (vec.size() == 7){
             if ((vec[1] == "-filter") and ((vec[2] == "structure") or (vec[2] == "water") or (vec[2] == "pop"))) {
                 //Sets filter
@@ -333,23 +341,23 @@ public:
         int max_probe = 0;
         int avg = 0;
         if (input.is_open() and output.is_open()) {
-           std::string tp;
-           while (getline(input,tp)) {
-               if (ignoreLine == -1) {
-                   ignoreLine++;
-                   continue;
-               }
-               if (validate_record(tp,avg) == 1) {
+            std::string tp;
+            while (getline(input,tp)) {
+                if (ignoreLine == -1) {
+                    ignoreLine++;
+                    continue;
+                }
+                if (validate_record(tp,avg) == 1) {
                     //Checks if record within world coordinates
-                   output << tp << "\n";
-                   cur_probe = GISRecord::asses_name(tp,table,ignoreLine);
+                    output << tp << "\n";
+                    cur_probe = GISRecord::asses_name(tp,table,ignoreLine);
 
-                   GISRecord::asses_coord(tp,tree,ignoreLine);
-                   ignoreLine++;
-                   imported++;
-               }
-               if (cur_probe > max_probe) max_probe = cur_probe;
-           }
+                    GISRecord::asses_coord(tp,tree,ignoreLine);
+                    ignoreLine++;
+                    imported++;
+                }
+                if (cur_probe > max_probe) max_probe = cur_probe;
+            }
         } else {
             log << "Files did not open (check path) - Exiting program\n";
             log.close();
@@ -434,9 +442,9 @@ public:
         std::istringstream iss(s);
         std::string word;
         while(std::getline(iss, word, '\t'))   // but we can specify a different one
-           vec.push_back(word);
+            vec.push_back(word);
 
-        }
+    }
 };
 
 class Logger {
