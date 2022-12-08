@@ -333,7 +333,6 @@ public:
         int max_probe = 0;
         int avg = 0;
         if (input.is_open() and output.is_open()) {
-            std::cout << "Both Files are open\n";
            std::string tp;
            while (getline(input,tp)) {
                if (ignoreLine == -1) {
