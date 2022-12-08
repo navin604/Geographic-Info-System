@@ -94,10 +94,10 @@ public:
                     //Stops processing commands and exits.
                     auto time = std::chrono::system_clock::now();
                     std::time_t end_time = std::chrono::system_clock::to_time_t(time);
-                    log << "Command " <<cnt<<": QUIT " << "\n";
+                    log << "Command " <<cnt<<": QUIT " << "\n\n";
                     log << "Terminating execution of commands.\n";
-                    log<< "    Exit Time:  " << std::ctime(&end_time) <<"\n";
                     log << "------------------------------------------------------------------------------------------\n";
+                    log<< "Exit Time:  " << std::ctime(&end_time) <<"\n";
                     log.close();
                     exit(1);
                 } else {
