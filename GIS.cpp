@@ -19,6 +19,7 @@ struct {long int westLong;
     long int northLat;
 } world;
 
+int global_offset = 0;
 
 class CommandProcessor {
 public:
@@ -41,7 +42,7 @@ public:
     }
     static void process_cmd(char* filename, char* database, std::fstream &log) {
         //Initializes data structures
-        HashTable<std::string> table;
+        HashTable table;
         BufferPool pool;
         QuadTree* tree = new QuadTree(0,0,0,0);
         std::vector<std::string> vect;
@@ -289,25 +290,28 @@ public:
         log << "-------------------------------------------------------------------------------------------" << "\n\n";
     }
 
-    static void what_is(std::vector<std::string> &vec, std::fstream &log,HashTable<std::string> &table,BufferPool &pool,char* database){
+    static void what_is(std::vector<std::string> &vec, std::fstream &log,HashTable &table,BufferPool &pool,char* database){
         //Searches for records with matching name
         std::string query = vec[1] +":"+ vec[2];
-        int result = table.search(query);
-        if (result == -1) {
+        std::vector<int> result = table.search(query);
+        if (result.size() == 0) {
             log << "No records match \""<<vec[1] <<"\" and \""<< vec[2] << "\"\n";
             log << "-------------------------------------------------------------------------------------------" << "\n\n";
             return;
         }
-        std::string offset = std::to_string(result);
-        query = pool.search(offset,database);
-        std::vector<std::string> temp = GISRecord::convert(query);
-        std::string lon = GISRecord::lon_str(temp[8]);
-        std::string lat = GISRecord::lat_str(temp[7]);
-        log << offset << ": " << temp[5] << " (" <<lat<<", "<<lon << ")\n";
+        for (int z = 0; z<result.size();z++){
+            std::string offset = std::to_string(result[z]);
+            query = pool.search(offset,database);
+            std::vector<std::string> temp = GISRecord::convert(query);
+            std::string lon = GISRecord::lon_str(temp[8]);
+            std::string lat = GISRecord::lat_str(temp[7]);
+            log << offset << ": " << temp[5] << " (" <<lat<<", "<<lon << ")\n";
+        }
+
         log << "-------------------------------------------------------------------------------------------" << "\n\n";
     }
 
-    static void debug(std::vector<std::string> &vec, std::fstream &log,HashTable<std::string> &table,BufferPool &pool,QuadTree* tree){
+    static void debug(std::vector<std::string> &vec, std::fstream &log,HashTable &table,BufferPool &pool,QuadTree* tree){
         //Visualize data structures
         if (vec[1] == "hash"){
             log << table.print();
@@ -329,7 +333,7 @@ public:
         }
     }
 
-    static void import(std::string file,char* database,HashTable<std::string> &table, std::fstream &log,QuadTree* tree) {
+    static void import(std::string file,char* database,HashTable &table, std::fstream &log,QuadTree* tree) {
         //Imports files
         int ignoreLine = -1;
         std::fstream input;
@@ -350,11 +354,11 @@ public:
                 if (validate_record(tp,avg) == 1) {
                     //Checks if record within world coordinates
                     output << tp << "\n";
-                    cur_probe = GISRecord::asses_name(tp,table,ignoreLine);
-
-                    GISRecord::asses_coord(tp,tree,ignoreLine);
+                    cur_probe = GISRecord::asses_name(tp,table,::global_offset);
+                    GISRecord::asses_coord(tp,tree,::global_offset);
                     ignoreLine++;
                     imported++;
+                    ::global_offset++;
                 }
                 if (cur_probe > max_probe) max_probe = cur_probe;
             }
@@ -382,8 +386,6 @@ public:
         imported = 0;
         max_probe = 0;
         avg = 0;
-
-
     }
     static void world(std::vector<std::string> &vec, std::fstream &log,QuadTree* tree) {
         //Sets world boundaries
