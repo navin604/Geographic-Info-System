@@ -15,8 +15,6 @@ struct HashEntry {
     std::vector<int> value;
     bool isActive;
     HashEntry() : key(""),value({}), isActive(false){}
-//        HashEntry(const T &e = T(), int j = -1, bool a = false): key{e}, value{j}, isActive{a}{}
-//        HashEntry(T &&e, int &&j, bool a = false): key{std::move(e)}, value{std::move(j)}, isActive{a} {}
 };
 
 
