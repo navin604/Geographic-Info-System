@@ -47,9 +47,11 @@ public:
         QuadTree* tree = new QuadTree(0,0,0,0);
         std::vector<std::string> vect;
         std::fstream cmd_file;
+        
         int cnt = 1;
-        cmd_file.open(filename, std::ios::in);
+        
         //Processes script file
+        cmd_file.open(filename, std::ios::in);
         if (cmd_file.is_open()) {
             std::string tp;
             while(getline(cmd_file,tp)) {
